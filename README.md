@@ -11,3 +11,7 @@ and in your OrleansConfiguration.xml configure the RedisStorage provider like th
       <Provider Type="Orleans.StorageProviders.RedisStorage" Name="RedisStore"
                 RedisConnectionString="<youraccount>.redis.cache.windows.net,abortConnect=false,ssl=true,password=<yourkey>"/>
 </StorageProviders>
+
+These settings will enable the redis cache to act as the store for grains that have 
+a) state
+b) need to persist their state
