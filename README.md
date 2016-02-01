@@ -1,4 +1,7 @@
 # Orleans.StorageProvider.Redis
+
+[![Build status](https://ci.appveyor.com/api/projects/status/x7j20s8bdhm7tkvq?svg=true)](https://ci.appveyor.com/project/richorama/orleans-storageprovider-redis)
+
 A Redis implementation of the Orleans Storage Provider model. Uses the Azure Redis Cache to persist grain states.
 
 Decorate your grain with the right attribute e.g.
