@@ -11,22 +11,22 @@ using System.Linq;
 namespace Orleans.StorageProviders.RedisStorage.Tests
 {
 
-    [DeploymentItem("DevTestServerConfiguration.xml")]
+    [DeploymentItem("DevTestServerConfigurationBinaryFormat.xml")]
     [DeploymentItem("DevTestClientConfiguration.xml")]
     [DeploymentItem("OrleansProviders.dll")]
     [DeploymentItem("Orleans.StorageProviders.RedisStorage.GrainClasses.dll")]
     [DeploymentItem("RedisStorage.dll")]
 
     [TestClass]
-    public class UnitTest1 : TestingSiloHost
+    public class PubSubStoreTests : TestingSiloHost
     {
         private readonly TimeSpan timeout = Debugger.IsAttached ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(10);
 
-        public UnitTest1()
+        public PubSubStoreTests()
             : base(new TestingSiloOptions
             {
                 StartFreshOrleans = true,
-                SiloConfigFile = new FileInfo("DevTestServerConfiguration.xml"),
+                SiloConfigFile = new FileInfo("DevTestServerConfigurationBinaryFormat.xml"),
             },
             new TestingClientOptions()
             {
@@ -43,85 +43,6 @@ namespace Orleans.StorageProviders.RedisStorage.Tests
             // cause a fresh Orleans silo environment to be created.
             StopAllSilos();
         }
-
-
-        [TestMethod]
-        public async Task TestStaticIdentifierGrains()
-        {
-            // insert your grain test code here
-            var grain = GrainClient.GrainFactory.GetGrain<IGrain1>(1234);
-            var now = DateTime.UtcNow;
-            var guid = Guid.NewGuid();
-            await grain.Set("string value", 12345, now, guid, GrainClient.GrainFactory.GetGrain<IGrain1>(2222));
-            var result = await grain.Get();
-            Assert.AreEqual("string value", result.Item1);
-            Assert.AreEqual(12345, result.Item2);
-            Assert.AreEqual(now, result.Item3);
-            Assert.AreEqual(guid, result.Item4);
-            Assert.AreEqual(2222, result.Item5.GetPrimaryKeyLong());
-        }
-
-
-        [TestMethod]
-        public async Task TestGrains()
-        {
-            var rnd = new Random();
-            var rndId1 = rnd.Next();
-            var rndId2 = rnd.Next();
-
-
-
-            // insert your grain test code here
-            var grain = GrainClient.GrainFactory.GetGrain<IGrain1>(rndId1);
-            var now = DateTime.UtcNow;
-            var guid = Guid.NewGuid();
-            await grain.Set("string value", 12345, now, guid, GrainClient.GrainFactory.GetGrain<IGrain1>(rndId2));
-            var result = await grain.Get();
-            Assert.AreEqual("string value", result.Item1);
-            Assert.AreEqual(12345, result.Item2);
-            Assert.AreEqual(now, result.Item3);
-            Assert.AreEqual(guid, result.Item4);
-            Assert.AreEqual(rndId2, result.Item5.GetPrimaryKeyLong());
-        }
-
-        [TestMethod]
-        public void JustSetValuesTest()
-        {
-            var rnd = new Random();
-            var rndId1 = rnd.Next();
-            var rndId2 = rnd.Next();
-
-            // insert your grain test code here
-            var grain = GrainClient.GrainFactory.GetGrain<IGrain1>(rndId1);
-            var now = DateTime.UtcNow;
-            var guid = Guid.NewGuid();
-            grain.Set("string value", 0, now, guid, GrainClient.GrainFactory.GetGrain<IGrain1>(rndId2)).Wait();
-        }
-
-        [TestMethod]
-        public void GetAndSetWithWaitTest()
-        {
-            var rnd = new Random();
-            var rndId1 = rnd.Next();
-            var rndId2 = rnd.Next();
-
-            // insert your grain test code here
-            var grain = GrainClient.GrainFactory.GetGrain<IGrain1>(rndId1);
-            var now = DateTime.UtcNow;
-            var guid = Guid.NewGuid();
-            grain.Set("string value", 0, now, guid, GrainClient.GrainFactory.GetGrain<IGrain1>(rndId2)).Wait();
-
-            var tGet = grain.Get();
-            tGet.Wait();
-            var result = tGet.Result;
-            Assert.AreEqual("string value", result.Item1);
-            Assert.AreEqual(0, result.Item2);
-            Assert.AreEqual(now, result.Item3);
-            Assert.AreEqual(guid, result.Item4);
-            Assert.AreEqual(rndId2, result.Item5.GetPrimaryKeyLong());
-        }
-
-
 
         [TestMethod]
         public async Task StreamingPubSubStoreTest()
@@ -251,52 +172,5 @@ namespace Orleans.StorageProviders.RedisStorage.Tests
 
 
         }
-
-
-        // code to initialize and clean up an Orleans Silo
-
-        //private static SiloHost siloHost;
-        //private static AppDomain hostDomain;
-
-        //private static void InitSilo(string[] args)
-        //{
-        //    siloHost = new SiloHost("Primary");
-        //    siloHost.ConfigFileName = "DevTestServerConfiguration.xml";
-        //    siloHost.DeploymentId = "1";
-        //    siloHost.InitializeOrleansSilo();
-        //    var ok = siloHost.StartOrleansSilo();
-        //    if (!ok)
-        //        throw new SystemException(string.Format("Failed to start Orleans silo '{0}' as a {1} node.", siloHost.Name, siloHost.Type));
-        //}
-
-        //[ClassInitialize]
-        //public static void GrainTestsClassInitialize(TestContext testContext)
-        //{
-        //    hostDomain = AppDomain.CreateDomain("OrleansHost", null, new AppDomainSetup
-        //    {
-        //        AppDomainInitializer = InitSilo,
-        //        ApplicationBase = AppDomain.CurrentDomain.SetupInformation.ApplicationBase,
-        //    });
-
-        //    GrainClient.Initialize("DevTestClientConfiguration.xml");
-        //}
-
-        //[ClassCleanup]
-        //public static void GrainTestsClassCleanUp()
-        //{
-        //    hostDomain.DoCallBack(() => {
-        //        siloHost.Dispose();
-        //        siloHost = null;
-        //        AppDomain.Unload(hostDomain);
-        //    });
-        //    var startInfo = new ProcessStartInfo
-        //    {
-        //        FileName = "taskkill",
-        //        Arguments = "/F /IM vstest.executionengine.x86.exe",
-        //        UseShellExecute = false,
-        //        WindowStyle = ProcessWindowStyle.Hidden,
-        //    };
-        //    Process.Start(startInfo);
-        //}
     }
 }

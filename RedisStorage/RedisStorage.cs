@@ -62,10 +62,11 @@ namespace Orleans.StorageProviders
                 redisDatabase = connectionMultiplexer.GetDatabase(databaseNumber);
             }
 
+            //initialize to use the default of JSON storage (this is to provide backwards compatiblity with previous version
+            useJsonFormat = true;
+
             if (config.Properties.ContainsKey(USE_JSON_FORMAT_PROPERTY))
                 useJsonFormat = "true".Equals(config.Properties[USE_JSON_FORMAT_PROPERTY], StringComparison.OrdinalIgnoreCase);
-            else
-                useJsonFormat = false;
 
 
             jsonSettings = new Newtonsoft.Json.JsonSerializerSettings()
@@ -104,14 +105,15 @@ namespace Orleans.StorageProviders
 
             if (Log.IsVerbose3)
             {
-                Log.Verbose3((int)ProviderErrorCode.RedisStorageProvider_ReadingData, "Reading: GrainType={0} Pk={1} Grainid={2} from Database={3}", grainType, primaryKey, grainReference, redisDatabase.Database);
+                Log.Verbose3((int)ProviderErrorCode.RedisStorageProvider_ReadingData, "Reading: GrainType={0} Pk={1} Grainid={2} from Database={3}", 
+                    grainType, primaryKey, grainReference, redisDatabase.Database);
             }
 
             RedisValue value = await redisDatabase.StringGetAsync(primaryKey);
             var data = new Dictionary<string, object>();
             if (value.HasValue)
             {
-                if (!useJsonFormat)
+                if (useJsonFormat)
                     data = JsonConvert.DeserializeObject<Dictionary<string, object>>(value, jsonSettings);
                 else
                     data = SerializationManager.DeserializeFromByteArray<Dictionary<string, object>>(value);
@@ -129,18 +131,19 @@ namespace Orleans.StorageProviders
             var primaryKey = grainReference.ToKeyString();
             if (Log.IsVerbose3)
             {
-                Log.Verbose3((int) ProviderErrorCode.RedisStorageProvider_WritingData, "Writing: GrainType={0} PrimaryKey={1} Grainid={2} ETag={3} to Database={4}", grainType, primaryKey, grainReference, grainState.Etag, redisDatabase.Database);
+                Log.Verbose3((int) ProviderErrorCode.RedisStorageProvider_WritingData, "Writing: GrainType={0} PrimaryKey={1} Grainid={2} ETag={3} to Database={4}", 
+                    grainType, primaryKey, grainReference, grainState.Etag, redisDatabase.Database);
             }
             var data = grainState.AsDictionary();
 
-            if (!useJsonFormat)
+            if (useJsonFormat)
             {
-                byte[] payload = SerializationManager.SerializeToByteArray(data);
+                var payload = JsonConvert.SerializeObject(data, jsonSettings);
                 await redisDatabase.StringSetAsync(primaryKey, payload);
             }
             else
             {
-                var payload = JsonConvert.SerializeObject(data, jsonSettings);
+                byte[] payload = SerializationManager.SerializeToByteArray(data);
                 await redisDatabase.StringSetAsync(primaryKey, payload);
             }
 
@@ -155,11 +158,11 @@ namespace Orleans.StorageProviders
             var primaryKey = grainReference.ToKeyString();
             if (Log.IsVerbose3)
             {
-                Log.Verbose3((int) ProviderErrorCode.RedisStorageProvider_ClearingData, "Clearing: GrainType={0} Pk={1} Grainid={2} ETag={3} DeleteStateOnClear={4} from Table={5}", grainType, primaryKey, grainReference, grainState.Etag, redisDatabase.Database);
+                Log.Verbose3((int) ProviderErrorCode.RedisStorageProvider_ClearingData, "Clearing: GrainType={0} Pk={1} Grainid={2} ETag={3} to Database={4}", 
+                    grainType, primaryKey, grainReference, grainState.Etag, redisDatabase.Database);
             }
             //remove from cache
             return redisDatabase.KeyDeleteAsync(primaryKey);
-            //return TaskDone.Done;
         }
 
      
