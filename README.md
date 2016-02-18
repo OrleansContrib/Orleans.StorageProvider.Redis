@@ -38,3 +38,7 @@ The following attributes can be used on the `<Provider/>` tag to configure the p
 * __UseJsonFormat="true/false"__ (optional) Defaults to `true`, if set to `false` the Orleans binary serializer is used (this is recommended, as the JSON serializer is unable to serialize certain types).
 * __RedisConnectionString="..."__ (required) the connection string to your redis database (i.e. `<youraccount>.redis.cache.windows.net,abortConnect=false,ssl=true,password=<yourkey>`)
 * __DatabaseNumber="1"__ (optional) the number of the redis database to connect to
+
+## License
+
+MIT
