@@ -1,29 +1,28 @@
-﻿using Orleans.Storage;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Threading.Tasks;
-using StackExchange.Redis;
-using Orleans.Runtime;
-using Orleans.Providers;
-using System.IO;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Orleans.Providers;
+using Orleans.Runtime;
 using Orleans.Serialization;
+using Orleans.Storage;
+using StackExchange.Redis;
 
 namespace Orleans.StorageProviders
 {
-    public class RedisStorage : IStorageProvider
+    public class RedisStorageProvider : IStorageProvider
     {
         private ConnectionMultiplexer connectionMultiplexer;
         private IDatabase redisDatabase;
 
-        private const string REDIS_CONNECTION_STRING = "RedisConnectionString";
-        private const string REDIS_DATABASE_NUMBER = "DatabaseNumber";
-        private const string USE_JSON_FORMAT_PROPERTY = "UseJsonFormat";
-
+        internal const string REDIS_CONNECTION_STRING = "RedisConnectionString";
+        internal const string REDIS_DATABASE_NUMBER = "DatabaseNumber";
+        internal const string USE_JSON_FORMAT_PROPERTY = "UseJsonFormat";
 
         private string serviceId;
         private bool useJsonFormat;
-        private Newtonsoft.Json.JsonSerializerSettings jsonSettings;
+        private JsonSerializerSettings jsonSettings;
+        private SerializationManager serializationManager;
 
         /// <summary> Name of this storage provider instance. </summary>
         /// <see cref="IProvider#Name"/>
@@ -40,6 +39,7 @@ namespace Orleans.StorageProviders
         {
             Name = name;
             serviceId = providerRuntime.ServiceId.ToString();
+            this.serializationManager = providerRuntime.ServiceProvider.GetRequiredService<SerializationManager>();
 
             if (!config.Properties.ContainsKey(REDIS_CONNECTION_STRING) ||
                 string.IsNullOrWhiteSpace(config.Properties[REDIS_CONNECTION_STRING]))
@@ -94,14 +94,14 @@ namespace Orleans.StorageProviders
         public Task Close()
         {
             connectionMultiplexer.Dispose();
-            return TaskDone.Done;
+            return Task.CompletedTask;
         }
 
         /// <summary> Read state data function for this storage provider. </summary>
         /// <see cref="IStorageProvider#ReadStateAsync"/>
         public async Task ReadStateAsync(string grainType, GrainReference grainReference, IGrainState grainState)
         {
-            var primaryKey = grainReference.ToKeyString();
+            var primaryKey = GetKey(grainReference);
 
             if (Log.IsVerbose3)
             {
@@ -115,7 +115,7 @@ namespace Orleans.StorageProviders
                 if (useJsonFormat)
                     grainState.State = JsonConvert.DeserializeObject(value, grainState.State.GetType(), jsonSettings);
                 else
-                    grainState.State = SerializationManager.DeserializeFromByteArray<object>(value);
+                    grainState.State = serializationManager.DeserializeFromByteArray<object>(value);
             }
 
             // TODO : Fix this
@@ -126,7 +126,8 @@ namespace Orleans.StorageProviders
         /// <see cref="IStorageProvider#WriteStateAsync"/>
         public async Task WriteStateAsync(string grainType, GrainReference grainReference, IGrainState grainState)
         {
-            var primaryKey = grainReference.ToKeyString();
+            var primaryKey = GetKey(grainReference);
+
             if (Log.IsVerbose3)
             {
                 Log.Verbose3((int) ProviderErrorCode.RedisStorageProvider_WritingData, "Writing: GrainType={0} PrimaryKey={1} Grainid={2} ETag={3} to Database={4}", 
@@ -141,7 +142,7 @@ namespace Orleans.StorageProviders
             }
             else
             {
-                byte[] payload = SerializationManager.SerializeToByteArray(data);
+                byte[] payload = serializationManager.SerializeToByteArray(data);
                 await redisDatabase.StringSetAsync(primaryKey, payload);
             }
 
@@ -153,7 +154,7 @@ namespace Orleans.StorageProviders
         /// <see cref="IStorageProvider#ClearStateAsync"/>
         public Task ClearStateAsync(string grainType, GrainReference grainReference, IGrainState grainState)
         {
-            var primaryKey = grainReference.ToKeyString();
+            var primaryKey = GetKey(grainReference);
             if (Log.IsVerbose3)
             {
                 Log.Verbose3((int) ProviderErrorCode.RedisStorageProvider_ClearingData, "Clearing: GrainType={0} Pk={1} Grainid={2} ETag={3} to Database={4}", 
@@ -163,6 +164,10 @@ namespace Orleans.StorageProviders
             return redisDatabase.KeyDeleteAsync(primaryKey);
         }
 
-     
+        private string GetKey(GrainReference grainReference)
+        {
+            var format = useJsonFormat ? "json" : "binary";
+            return $"{grainReference.ToKeyString()}|{format}";
+        }
     }
 }
