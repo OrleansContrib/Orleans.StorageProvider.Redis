@@ -1,10 +1,10 @@
 ﻿using Orleans.Providers;
 using Orleans.Runtime;
-using Orleans.StorageProviders.Redis.TestGrainInterfaces;
+using Orleans.Persistence.Redis.TestGrainInterfaces;
 using System;
 using System.Threading.Tasks;
 
-namespace Orleans.StorageProviders.Redis.TestGrains
+namespace Orleans.Persistence.Redis.TestGrains
 {
     [StorageProvider(ProviderName = "REDIS-JSON")]
     public class JsonTestGrain2 : Grain<JsonTestGrainState2>, IJsonTestGrain2

@@ -1,11 +1,9 @@
-﻿using Orleans.StorageProviders.Redis.TestGrainInterfaces;
+﻿using Orleans.Persistence.Redis.TestGrainInterfaces;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Orleans.StorageProviders.Redis.TestGrains
+namespace Orleans.Persistence.Redis.TestGrains
 {
-    public class JsonTestGrainState
+    public class JsonTestGrainState2
     {
         public string StringValue { get; set; }
         public int IntValue { get; set; }

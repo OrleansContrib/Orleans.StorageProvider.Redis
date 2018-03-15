@@ -1,30 +1,47 @@
-# Orleans.StorageProvider.Redis
+<p align="center">
+  <img src="https://github.com/dotnet/orleans/blob/gh-pages/assets/logo.png" alt="Orleans.Redis" width="300px"> 
+  <h1>Orleans Redis Providers</h1>
+</p>
 
+1.5.x branch 
 [![Build status](https://ci.appveyor.com/api/projects/status/6xxnvi7rh131c9f1?svg=true)](https://ci.appveyor.com/project/OrleansContrib/orleans-storageprovider-redis)
-dev branch
+2.x.x branch
 [![Build status](https://ci.appveyor.com/api/projects/status/6xxnvi7rh131c9f1/branch/dev?svg=true)](https://ci.appveyor.com/project/OrleansContrib/orleans-storageprovider-redis/branch/dev)
 
-A Redis implementation of the Orleans Storage Provider model. Uses the Azure Redis Cache to persist grain states.
+
+[Orleans](https://github.com/dotnet/orleans) is a framework that provides a straight-forward approach to building distributed high-scale computing applications, without the need to learn and apply complex concurrency or other scaling patterns. 
+
+[Redis](https://redis.io/) is an open source (BSD licensed), in-memory data structure store, used as a database, cache and message broker.
+
+**Orleans.Redis** is a package that use Redis as a backend for Orleans providers. It uses the great [StackExchange.Redis](https://stackexchange.github.io/StackExchange.Redis/) library underneath.
+
+
+## Installation
+
+> PS> Install-Package Orleans.Persistence.Redis -prerelease
 
 ## Usage
 
-```ps
-Install-Package RedisStorage
-```
-
-
-Decorate your grain with the StorageProvider attribute matching the name you added from config e.g.
+Configure your Orleans-cluster.
 
 ```cs
-[StorageProvider(ProviderName = "RedisStore")]
+var silo = new SiloHostBuilder()
+    .AddRedisGrainStorage("Redis", optionsBuilder => optionsBuilder.Configure(options =>
+    {
+        options.DataConnectionString = "localhost:6379"; // This is the deafult
+        options.UseJson = true;
+        options.DatabaseNumber = 1;
+    }))
+    .Build();
+await silo.StartAsync();
 ```
 
-and in your OrleansConfiguration.xml configure the RedisStorage provider like this:
+Decorate your grain classes with the `StorageProvider` attribute.
 
-```xml
-<Provider Type="Orleans.StorageProviders.RedisStorage" Name="RedisStore"
-    RedisConnectionString="<youraccount>.redis.cache.windows.net,abortConnect=false,ssl=true,password=<yourkey>"/>
-```
+ ```cs
+[StorageProvider(ProviderName = "Redis")]
+public class SomeGrain : Grain<SomeGrainState>, ISomeGrain
+ ```
 
 These settings will enable the redis cache to act as the store for grains that have 
 
@@ -33,11 +50,9 @@ These settings will enable the redis cache to act as the store for grains that h
 
 ## Configuration
 
-The following attributes can be used on the `<Provider/>` tag to configure the provider:
-
-* __UseJsonFormat="true/false"__ (optional) Defaults to `true`, if set to `false` the Orleans binary serializer is used (this is recommended, as the JSON serializer is unable to serialize certain types).
-* __RedisConnectionString="..."__ (required) the connection string to your redis database (i.e. `<youraccount>.redis.cache.windows.net,abortConnect=false,ssl=true,password=<yourkey>`)
-* __DatabaseNumber="1"__ (optional) the number of the redis database to connect to
+* __DataConnectionString="..."__ (required) the connection string to your redis database (i.e. `localhost:6379`, is passed directly to StackExchange.Redis)
+* __UseJson=true/false__ (optional) wether or not to persist state as a JSON string or not. Defaults to `false`
+* __DatabaseNumber=1__ (optional) the number of the redis database to connect to. Defaults
 
 ## License
 
